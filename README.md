@@ -21,7 +21,7 @@ git clone https://github.com/frillweeman/lnav-config.git
 cd lnav-config
 ```
 
-2. Run the install script.
+2. Run the install script. This will symlink the scripts in this repo to the directory used by `lnav`.
 ```sh
 ./install.sh
 ```
