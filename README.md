@@ -1,5 +1,5 @@
 # Lnav Config
-Some useful tools for lnav.
+Some useful tools for lnav. [Lnav installation instructions](https://lnav.org/downloads).
 
 ## What's Included
 
