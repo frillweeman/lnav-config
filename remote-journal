@@ -1,0 +1,99 @@
+#!/bin/bash
+
+set -euo pipefail
+
+# Default values
+ENV="prod"
+SINCE=""
+UNTIL=""
+UNIT=""
+TARGET_HOST=""
+
+# Temporary file for storing logs
+TMPFILE=$(mktemp /tmp/remote-journal.XXXXXX.log)
+
+# Cleanup on exit
+cleanup() {
+    rm -f "$TMPFILE"
+}
+trap cleanup EXIT
+
+# Helper to print usage
+usage() {
+    echo "Usage: $0 [--env ENV] [--since TIME] [--until TIME] [-u UNIT] TARGET_HOST"
+    echo
+    echo "  --env ENV     Set the environment: test, hotfix, or prod (default: prod)"
+    echo "  --since TIME  Show logs since TIME (e.g., '1 hour ago', '2024-01-01')"
+    echo "  --until TIME  Show logs until TIME"
+    echo "  -u UNIT       Show logs from the given systemd unit"
+    echo "  TARGET_HOST   Final hostname to connect to (e.g. K12334)"
+    exit 1
+}
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --env)
+            ENV="$2"
+            shift 2
+            ;;
+        --since)
+            SINCE="$2"
+            shift 2
+            ;;
+        --until)
+            UNTIL="$2"
+            shift 2
+            ;;
+        -u)
+            UNIT+=" -u \"$2\""
+            shift 2
+            ;;
+        -h|--help)
+            usage
+            ;;
+        *)
+            if [[ -z "$TARGET_HOST" ]]; then
+                TARGET_HOST="$1"
+            else
+                echo "Unknown argument: $1"
+                usage
+            fi
+            shift
+            ;;
+    esac
+done
+
+if [[ -z "$TARGET_HOST" ]]; then
+    echo "Error: TARGET_HOST is required."
+    usage
+fi
+
+# Select jump host based on environment
+case "$ENV" in
+    test)
+        JUMP_HOST="testk2.minutekey.com"
+        ;;
+    hotfix)
+        JUMP_HOST="hotfixk2.minutekey.com"
+        ;;
+    prod|*)
+        JUMP_HOST="k2.minutekey.com"
+        ;;
+esac
+
+# Build the journalctl command
+JOURNALCTL_CMD="journalctl --no-pager"
+[[ -n "$SINCE" ]] && JOURNALCTL_CMD+=" --since=\"$SINCE\""
+[[ -n "$UNTIL" ]] && JOURNALCTL_CMD+=" --until=\"$UNTIL\""
+[[ -n "$UNIT"  ]] && JOURNALCTL_CMD+=" $UNIT"
+
+# Ensure proper quoting for SSH command
+JOURNALCTL_CMD=$(printf "%q" "$JOURNALCTL_CMD")
+
+# SSH command with double hop
+echo "Fetching logs from $TARGET_HOST via $JUMP_HOST..."
+ssh "$JUMP_HOST" ssh "$TARGET_HOST" "$JOURNALCTL_CMD" > "$TMPFILE"
+
+# Launch lnav
+lnav "$TMPFILE"

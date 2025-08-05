@@ -3,6 +3,11 @@ Some useful tools for lnav.
 
 ## What's Included
 
+### remote-journal
+A bash script that forwards a `journalctl` command to a remote kiosk and stores the output as a temp file on your machine, then opens it in `lnav`.
+
+Copy it to your `$PATH` and make it executable.
+
 ### Scripts
 To run scripts, use `|` followed by the script name.
 
