@@ -8,6 +8,11 @@ A bash script that forwards a `journalctl` command to a remote kiosk and stores 
 
 Copy it to your `$PATH` and make it executable.
 
+#### Example Usage
+```sh
+remote-journal --env test -u kili -u console --since "10 hours ago" k12334
+```
+
 ### Scripts
 To run scripts, use `|` followed by the script name.
 
